@@ -1,26 +1,47 @@
 package com.reactnativewebworker;
 
-import androidx.annotation.NonNull;
-import com.facebook.react.bridge.Promise;
-import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 
-public class WebWorkerModule extends ReactContextBaseJavaModule {
+import androidx.annotation.NonNull;
+
+import com.facebook.react.ReactInstanceManager;
+import com.facebook.react.ReactNativeHost;
+import com.facebook.react.ReactPackage;
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.JSBundleLoader;
+import com.facebook.react.bridge.LifecycleEventListener;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.devsupport.interfaces.DevSupportManager;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okio.Okio;
+import okio.Sink;
+
+public class WebWorkerModule extends NativeWebWorkerSpec implements LifecycleEventListener {
   public static final String NAME = "WebWorker";
 
   private ReactApplicationContext mReactContext;
   private ReactNativeHost mReactNativeHost;
-  private ReactPackage mAadditionalThreadPackages[];
 
-  private HashMap<Integer, SelfModule> mThreads;
+  private HashMap<Double, SelfModule> mThreads;
 
-  public WebWorkerModule(final ReactApplicationContext reactContext, ReactNativeHost reactNativeHost, ReactPackage additionalThreadPackages[]) {
+  public WebWorkerModule(final ReactApplicationContext reactContext, ReactNativeHost reactNativeHost) {
     super(reactContext);
     mReactContext = reactContext;
-    mThreads = new HashMap<>();
+    mThreads = new HashMap<Double, SelfModule>();
     mReactNativeHost = reactNativeHost;
-    mAadditionalThreadPackages = additionalThreadPackages;
     reactContext.addLifecycleEventListener(this);
   }
 
@@ -30,30 +51,25 @@ public class WebWorkerModule extends ReactContextBaseJavaModule {
     return NAME;
   }
 
-  @ReactMethod
-  public void startThread(int threadId, final String jsFileName) {
-    Log.d(TAG, "Starting web thread - " + jsFileName);
+  public void startThread(double threadId, final String jsFileName) {
+    Log.d(NAME, "Starting web thread - " + jsFileName);
 
     // When we create the absolute file path later, a "./" will break it.
     // Remove the leading "./" if it exists.
     String jsFileSlug = jsFileName.contains("./")
-            ? jsFileName.replace("./", "")
-            : jsFileName;
+      ? jsFileName.replace("./", "")
+      : jsFileName;
 
     JSBundleLoader bundleLoader = getDevSupportManager().getDevSupportEnabled()
-            ? createDevBundleLoader(jsFileName, jsFileSlug)
-            : createReleaseBundleLoader(jsFileName, jsFileSlug);
+      ? createDevBundleLoader(jsFileName, jsFileSlug)
+      : createReleaseBundleLoader(jsFileName, jsFileSlug);
 
     try {
-      ArrayList<ReactPackage> threadPackages = new ArrayList<ReactPackage>(Arrays.asList(mAadditionalThreadPackages));
-      threadPackages.add(0, new WorkerBaseReactPackage(getReactInstanceManager()));
-
       ReactApplicationContext threadContext = new ReactContextBuilder(getReactApplicationContext())
-              .setJSBundleLoader(bundleLoader)
-              .setDevSupportManager(getDevSupportManager())
-              .setReactInstanceManager(getReactInstanceManager())
-              .setReactPackages(threadPackages)
-              .build();
+        .setJSBundleLoader(bundleLoader)
+        .setDevSupportManager(getDevSupportManager())
+        .setReactInstanceManager(getReactInstanceManager())
+        .build();
 
       SelfModule thread = threadContext.getNativeModule(SelfModule.class);
       thread.setThreadId(threadId);
@@ -61,23 +77,23 @@ public class WebWorkerModule extends ReactContextBaseJavaModule {
         @Override
         public void onMessage(SelfModule thread, String message) {
           WritableMap params = Arguments.createMap();
-          params.putInt("id", thread.getThreadId());
+          params.putDouble("id", thread.getThreadId());
           params.putString("message", message);
 
           mReactContext
-                  .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                  .emit("message", params);
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+            .emit("message", params);
         }
 
         @Override
         public void onError(SelfModule thread, String message) {
           WritableMap params = Arguments.createMap();
-          params.putInt("id", thread.getThreadId());
+          params.putDouble("id", thread.getThreadId());
           params.putString("message", message);
 
           mReactContext
-                  .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                  .emit("error", params);
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+            .emit("error", params);
         }
       });
 
@@ -87,11 +103,10 @@ public class WebWorkerModule extends ReactContextBaseJavaModule {
     }
   }
 
-  @ReactMethod
-  public void stopThread(final int threadId) {
+  public void stopThread(final double threadId) {
     final SelfModule thread = mThreads.get(threadId);
     if (thread == null) {
-      Log.d(TAG, "Cannot stop thread - thread is null for id " + threadId);
+      Log.d(NAME, "Cannot stop thread - thread is null for id " + threadId);
       return;
     }
 
@@ -104,60 +119,67 @@ public class WebWorkerModule extends ReactContextBaseJavaModule {
     });
   }
 
-  @ReactMethod
-  public void postThreadMessage(int threadId, String message) {
+  public void postMessage(double threadId, String message) {
     SelfModule thread = mThreads.get(threadId);
     if (thread == null) {
-      Log.d(TAG, "Cannot post message to thread - thread is null for id " + threadId);
+      Log.d(NAME, "Cannot post message to thread - thread is null for id " + threadId);
       return;
     }
 
     thread.sendMessage(message);
   }
 
-  // @Override
-  // public void onHostResume() {
-  //   new Handler(Looper.getMainLooper()).post(new Runnable() {
-  //     @Override
-  //     public void run() {
-  //       for (int threadId : mThreads.keySet()) {
-  //         mThreads.get(threadId).onHostResume();
-  //       }
-  //     }
-  //   });
-  // }
+  public void addListener(String eventName) {
+    // Set up any upstream listeners or background tasks as necessary
+  }
 
-  // @Override
-  // public void onHostPause() {
-  //   new Handler(Looper.getMainLooper()).post(new Runnable() {
-  //     @Override
-  //     public void run() {
-  //       for (int threadId : mThreads.keySet()) {
-  //         mThreads.get(threadId).onHostPause();
-  //       }
-  //     }
-  //   });
-  // }
+  public void removeListeners(double count) {
+    // Remove upstream listeners, stop unnecessary background tasks
+  }
 
-  // @Override
-  // public void onHostDestroy() {
-  //   Log.d(TAG, "onHostDestroy - Clean JS Threads");
+   @Override
+   public void onHostResume() {
+     new Handler(Looper.getMainLooper()).post(new Runnable() {
+       @Override
+       public void run() {
+         for (double threadId : mThreads.keySet()) {
+           mThreads.get(threadId).onHostResume();
+         }
+       }
+     });
+   }
 
-  //   new Handler(Looper.getMainLooper()).post(new Runnable() {
-  //     @Override
-  //     public void run() {
-  //       for (int threadId : mThreads.keySet()) {
-  //         mThreads.get(threadId).terminate();
-  //       }
-  //     }
-  //   });
-  // }
+   @Override
+   public void onHostPause() {
+     new Handler(Looper.getMainLooper()).post(new Runnable() {
+       @Override
+       public void run() {
+         for (double threadId : mThreads.keySet()) {
+           mThreads.get(threadId).onHostPause();
+         }
+       }
+     });
+   }
 
-  // @Override
-  // public void onCatalystInstanceDestroy() {
-  //   super.onCatalystInstanceDestroy();
-  //   onHostDestroy();
-  // }
+   @Override
+   public void onHostDestroy() {
+     Log.d(NAME, "onHostDestroy - Clean JS Threads");
+
+     new Handler(Looper.getMainLooper()).post(new Runnable() {
+       @Override
+       public void run() {
+         for (double threadId : mThreads.keySet()) {
+           mThreads.get(threadId).terminate();
+         }
+       }
+     });
+   }
+
+   @Override
+   public void onCatalystInstanceDestroy() {
+     super.onCatalystInstanceDestroy();
+     onHostDestroy();
+   }
 
   /* Helper methods */
 
@@ -169,14 +191,14 @@ public class WebWorkerModule extends ReactContextBaseJavaModule {
     String[] splitFileSlug = jsFileSlug.split("/");
     String bundleOut = getReactApplicationContext().getFilesDir().getAbsolutePath() + "/" + splitFileSlug[splitFileSlug.length - 1];
 
-    Log.d(TAG, "createDevBundleLoader - download web thread to - " + bundleOut);
+    Log.d(NAME, "createDevBundleLoader - download web thread to - " + bundleOut);
     downloadScriptToFileSync(bundleUrl, bundleOut);
 
     return JSBundleLoader.createCachedBundleFromNetworkLoader(bundleUrl, bundleOut);
   }
 
   private JSBundleLoader createReleaseBundleLoader(String jsFileName, String jsFileSlug) {
-    Log.d(TAG, "createReleaseBundleLoader - reading file from assets");
+    Log.d(NAME, "createReleaseBundleLoader - reading file from assets");
     return JSBundleLoader.createAssetLoader(mReactContext, "assets://mThreads/" + jsFileSlug + ".bundle", false);
   }
 

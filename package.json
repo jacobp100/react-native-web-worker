@@ -1,5 +1,6 @@
 {
-  "name": "react-native-webworker",
+  "name": "@jacobp100/react-native-webworker",
+  "private": false,
   "version": "0.1.0",
   "description": "test",
   "main": "lib/commonjs/index",

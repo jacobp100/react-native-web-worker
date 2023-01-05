@@ -1,9 +1,10 @@
 module.exports = {
   dependency: {
     platforms: {
-      android: {
-        packageInstance: 'new WebworkerPackage(reactNativeHost)',
-      },
+      android: null,
+      // android: {
+      //   packageInstance: 'new WebworkerPackage(reactNativeHost)',
+      // },
       macos: null,
       windows: null,
     },

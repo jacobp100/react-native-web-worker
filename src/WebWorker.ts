@@ -5,7 +5,7 @@ const isTurboModuleEnabled = global.__turboModuleProxy != null;
 
 const WebWorkerModule = isTurboModuleEnabled
   ? require('./NativeWebWorker').default
-  : NativeModules.WebWorkerModule;
+  : NativeModules.WebWorker;
 const ThreadEvents = new NativeEventEmitter(WebWorkerModule);
 
 let currentId = 0;

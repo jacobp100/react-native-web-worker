@@ -5,7 +5,7 @@ const isTurboModuleEnabled = global.__turboModuleProxy != null;
 
 const SelfModule = isTurboModuleEnabled
   ? require('./NativeSelf').default
-  : NativeModules.SelfModule;
+  : NativeModules.Self;
 const ThreadSelfManagerEvents = new NativeEventEmitter(SelfModule);
 
 export type Self = {

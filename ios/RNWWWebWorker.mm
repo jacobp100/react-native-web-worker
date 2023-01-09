@@ -54,9 +54,14 @@ RCT_EXPORT_MODULE(WebWorker);
 RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
                   name:(NSString *)name)
 {
+#if DEBUG
+  NSURL *threadUrl = [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:name];
+#else
+  NSURL *threadUrl = [[NSBundle mainBundle] URLForResource:name withExtension:@"jsbundle"];
+#endif
+
   // There's no nice way create an RCTBridge with a delegate and bundle URL
   // Just store the threadUrl in the launch options so we can access it easily
-  NSURL *threadUrl = [RCTBundleURLProvider.sharedSettings jsBundleURLForBundleRoot:name];
   NSDictionary *launchOptions = @{
     @"threadId": threadId,
     @"threadUrl": threadUrl,

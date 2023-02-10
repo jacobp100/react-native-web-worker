@@ -1,5 +1,6 @@
 #import "RNWWWebWorker.h"
 #import <React/RCTDevSettings.h>
+#import <React/RCTDevMenu.h>
 #include <stdlib.h>
 
 #import <React/RCTAppSetupUtils.h>
@@ -20,6 +21,8 @@
 }
 
 RCT_EXPORT_MODULE(WebWorker);
+
+@synthesize bridge = _bridge;
 
 + (BOOL)requiresMainQueueSetup
 {
@@ -51,9 +54,23 @@ RCT_EXPORT_MODULE(WebWorker);
   return @[@"message", @"error"];
 }
 
+#if RCT_DEV
+// Calls to setHotkeysEnabled must be on the main thread
+- (dispatch_queue_t)methodQueue
+{
+  return dispatch_get_main_queue();
+}
+#endif
+
 RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
                   name:(NSString *)name)
 {
+#if RCT_DEV
+  RCTDevMenu *mainDevMenu = [_bridge moduleForClass:RCTDevMenu.class];
+  // We have to read this early as the value may change when loading a new thread
+  BOOL hotkeysEnabled = [mainDevMenu hotkeysEnabled];
+#endif
+
 #if DEBUG
   NSURL *threadUrl = [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:name];
 #else
@@ -69,15 +86,31 @@ RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
   RCTBridge *threadBridge = [[RCTBridge alloc] initWithDelegate:self
                                                   launchOptions:launchOptions];
 
-  // Ensure shaking device doesn't open additional dev menus
-  [[threadBridge moduleForClass:RCTDevSettings.class]
-   setIsShakeToShowDevMenuEnabled:NO];
-
   RNWWSelf *threadSelf = [threadBridge moduleForClass:RNWWSelf.class];
   threadSelf.threadId = threadId;
   threadSelf.delegate = self;
 
   _threads[threadId] = threadBridge;
+
+#if RCT_DEV
+  // When we start a new thread, we'll initialize a new DevMenu class, which will
+  // then override the existing handlers for shake and key presses
+  // We can turn some of this behaviour off; however, it gets stored in the user settings,
+  // and applied to the main DevMenu class
+  // Here, we do the best effort to un-initialize the key commands
+
+  // First, disable the main keyboard shortcuts so we know re-enabling later won't no-op
+  [mainDevMenu setHotkeysEnabled:NO];
+
+  RCTDevMenu *threadDevMenu = [threadBridge moduleForClass:RCTDevMenu.class];
+  // Disable the shake gesture handler
+  [[NSNotificationCenter defaultCenter] removeObserver:threadDevMenu];
+  // Disable thread keyboard shortcuts
+  [threadDevMenu setHotkeysEnabled:NO];
+
+  // Lastly, re-enable the main keyboard shortcuts if they were enabled
+  [mainDevMenu setHotkeysEnabled:hotkeysEnabled];
+#endif
 }
 
 RCT_EXPORT_METHOD(stopThread:(nonnull NSNumber *)threadId)
@@ -135,7 +168,7 @@ RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params
 {
-    return std::make_shared<facebook::react::NativeWebWorkerSpecJSI>(params);
+  return std::make_shared<facebook::react::NativeWebWorkerSpecJSI>(params);
 }
 
 #pragma mark - RCTCxxBridgeDelegate

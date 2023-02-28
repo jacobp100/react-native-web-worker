@@ -6,7 +6,7 @@ import {
   Text,
   ScrollView,
 } from 'react-native';
-import { WebWorker } from 'react-native-webworker';
+import { WebWorker } from '@jacobp100/react-native-webworker';
 
 export default () => {
   const [messages, setMessages] = useState<string[]>([]);

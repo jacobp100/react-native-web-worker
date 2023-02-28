@@ -5,19 +5,16 @@
 
 #import <React/RCTAppSetupUtils.h>
 
+#import "RNWWEnvironment.h"
+#import "RNWWEnvironmentBridge.h"
+#import "RNWWEnvironmentJavaScriptCore.h"
+
 #if RCT_NEW_ARCH_ENABLED
 #import "RNWebworkerSpec.h"
-
-#import <React/CoreModulesPlugins.h>
-#import <React/RCTCxxBridgeDelegate.h>
-#import <ReactCommon/RCTTurboModuleManager.h>
-
-@interface RNWWWebWorker () <RCTCxxBridgeDelegate, RCTTurboModuleManagerDelegate>
-@end
 #endif
 
 @implementation RNWWWebWorker {
-  NSMutableDictionary<NSNumber *, RCTBridge *> *_threads;
+  NSMutableDictionary<NSNumber *, id<RNWWEnviromnent>> *_threads;
 }
 
 RCT_EXPORT_MODULE(WebWorker);
@@ -39,8 +36,8 @@ RCT_EXPORT_MODULE(WebWorker);
 
 - (void)invalidate {
   for (NSNumber *threadId in _threads) {
-    RCTBridge *threadBridge = _threads[threadId];
-    [threadBridge invalidate];
+    id<RNWWEnviromnent> enviromnent = _threads[threadId];
+    [enviromnent invalidate];
   }
 
   [_threads removeAllObjects];
@@ -63,81 +60,55 @@ RCT_EXPORT_MODULE(WebWorker);
 #endif
 
 RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
-                  name:(NSString *)name)
+                  name:(NSString *)name
+                  environment:(NSString *)environment)
 {
-#if RCT_DEV
-  RCTDevMenu *mainDevMenu = [_bridge moduleForClass:RCTDevMenu.class];
-  // We have to read this early as the value may change when loading a new thread
-  BOOL hotkeysEnabled = [mainDevMenu hotkeysEnabled];
-#endif
-
 #if DEBUG
-  NSURL *threadUrl = [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:name];
+  NSURL *url = [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:name];
 #else
-  NSURL *threadUrl = [[NSBundle mainBundle] URLForResource:name withExtension:@"jsbundle"];
+  NSURL *url = [[NSBundle mainBundle] URLForResource:name withExtension:@"jsbundle"];
 #endif
 
-  // There's no nice way create an RCTBridge with a delegate and bundle URL
-  // Just store the threadUrl in the launch options so we can access it easily
-  NSDictionary *launchOptions = @{
-    @"threadId": threadId,
-    @"threadUrl": threadUrl,
-  };
-  RCTBridge *threadBridge = [[RCTBridge alloc] initWithDelegate:self
-                                                  launchOptions:launchOptions];
+  id<RNWWEnviromnent> thread;
+  if ([environment isEqualToString:@"javascript-core"]) {
+    thread = [[RNWWEnvironmentJavaScriptCore alloc] initWithThreadId:threadId
+                                                                 url:url];
 
-  RNWWSelf *threadSelf = [threadBridge moduleForClass:RNWWSelf.class];
-  threadSelf.threadId = threadId;
-  threadSelf.delegate = self;
-
-  _threads[threadId] = threadBridge;
-
-#if RCT_DEV
-  // When we start a new thread, we'll initialize a new DevMenu class, which will
-  // then override the existing handlers for shake and key presses
-  // We can turn some of this behaviour off; however, it gets stored in the user settings,
-  // and applied to the main DevMenu class
-  // Here, we do the best effort to un-initialize the key commands
-
-  // First, disable the main keyboard shortcuts so we know re-enabling later won't no-op
-  [mainDevMenu setHotkeysEnabled:NO];
-
-  RCTDevMenu *threadDevMenu = [threadBridge moduleForClass:RCTDevMenu.class];
-  // Disable the shake gesture handler
-  [[NSNotificationCenter defaultCenter] removeObserver:threadDevMenu];
-  // Disable thread keyboard shortcuts
-  [threadDevMenu setHotkeysEnabled:NO];
-
-  // Lastly, re-enable the main keyboard shortcuts if they were enabled
-  [mainDevMenu setHotkeysEnabled:hotkeysEnabled];
-#endif
+  } else {
+    thread = [[RNWWEnvironmentBridge alloc] initWithBridge:_bridge
+                                                  threadId:threadId
+                                                       url:url];
+  }
+    
+  thread.delegate = self;
+  [_threads setObject:thread
+               forKey:threadId];
 }
 
 RCT_EXPORT_METHOD(stopThread:(nonnull NSNumber *)threadId)
 {
-  RCTBridge *threadBridge = _threads[threadId];
-  if (threadBridge == nil) {
+  id<RNWWEnviromnent> thread = _threads[threadId];
+  if (thread == nil) {
     return;
   }
 
-  [threadBridge invalidate];
+  [thread invalidate];
   [_threads removeObjectForKey:threadId];
 }
 
 RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
                   message:(NSString *)message)
 {
-  RCTBridge *threadBridge = _threads[threadId];
-  if (threadBridge == nil) {
-    NSLog(@"Thread is Nil. abort posting to thread with id %@", threadId);
+  id<RNWWEnviromnent> thread = _threads[threadId];
+  if (thread == nil) {
+    NSLog(@"Could not post to thread with id %@", threadId);
     return;
   }
 
-  RNWWSelf *threadSelf = [threadBridge moduleForClass:RNWWSelf.class];
-  [threadSelf postMessage:message];
+  [thread postMessage:message];
 }
 
-- (void)didReceiveMessage:(RNWWSelf *)sender
+- (void)didReceiveMessage:(id<RNWWEnviromnent>)sender
                   message:(NSString *)message
 {
   id body = @{
@@ -148,7 +119,7 @@ RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
                      body:body];
 }
 
-- (void)didReceiveError:(RNWWSelf *)sender
+- (void)didReceiveError:(id<RNWWEnviromnent>)sender
                 message:(NSString *)message
 {
   id body = @{
@@ -165,48 +136,10 @@ RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
 }
 
 #if RCT_NEW_ARCH_ENABLED
-
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const facebook::react::ObjCTurboModule::InitParams &)params
 {
   return std::make_shared<facebook::react::NativeWebWorkerSpecJSI>(params);
 }
-
-#pragma mark - RCTCxxBridgeDelegate
-
-- (std::unique_ptr<facebook::react::JSExecutorFactory>)jsExecutorFactoryForBridge:(RCTBridge *)bridge
-{
-  RCTTurboModuleManager *turboModuleManager = [[RCTTurboModuleManager alloc]
-                                               initWithBridge:bridge
-                                               delegate:self
-                                               jsInvoker:bridge.jsCallInvoker];
-  return RCTAppSetupDefaultJsExecutorFactory(bridge, turboModuleManager);
-}
-
-#pragma mark RCTTurboModuleManagerDelegate
-
-- (Class)getModuleClassFromName:(const char *)name
-{
-  return RCTCoreModulesClassProvider(name);
-}
-
-- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const std::string &)name
-                                                      jsInvoker:(std::shared_ptr<facebook::react::CallInvoker>)jsInvoker
-{
-  return nullptr;
-}
-
-- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const std::string &)name
-                                                     initParams:
-                                                         (const facebook::react::ObjCTurboModule::InitParams &)params
-{
-  return nullptr;
-}
-
-- (id<RCTTurboModule>)getModuleInstanceFromClass:(Class)moduleClass
-{
-  return RCTAppSetupDefaultModuleFromClass(moduleClass);
-}
-
 #endif
 
 @end

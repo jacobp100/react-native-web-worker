@@ -4,6 +4,7 @@
 #import <JavaScriptCore/JavaScriptCore.h>
 
 @implementation RNWWEnvironmentJavaScriptCore {
+  dispatch_queue_t _queue;
   JSContext *_context;
   // Messages queued here until the JS has loaded (lazily created)
   NSMutableArray<NSString *> *_pendingEvents;
@@ -16,17 +17,19 @@
   self = [super init];
   if (self) {
     self.threadId = threadId;
-
     _isLoading = YES;
 
-    _context = [[JSContext alloc] init];
+    dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
+                                                                        QOS_CLASS_BACKGROUND,
+                                                                        -1);
+    _queue = dispatch_queue_create("javascript-core", qos);
+    _context = [JSContext new];
 
-    [_context.globalObject setValue:_context.globalObject
-                        forProperty:@"self"];
+    __weak typeof(self) weakSelf = self;
 
-    __weak RNWWEnvironmentJavaScriptCore *weakSelf = self;
-    id postMessage = ^(NSString *message) {
-      RNWWEnvironmentJavaScriptCore *strongSelf = weakSelf;
+    _context[@"self"] = _context.globalObject;
+    _context[@"postMessage"] = ^(NSString *message) {
+      __strong typeof(self) strongSelf = weakSelf;
       if (strongSelf == nil) {
         return;
       }
@@ -34,15 +37,13 @@
       [strongSelf->_delegate didReceiveMessage:strongSelf
                                        message:message];
     };
-    [_context.globalObject setValue:postMessage
-                        forProperty:@"postMessage"];
     _context.exceptionHandler = ^(JSContext *context, JSValue *exception) {
-      RNWWEnvironmentJavaScriptCore *strongSelf = weakSelf;
+      __strong typeof(self) strongSelf = weakSelf;
       if (strongSelf == nil) {
         return;
       }
 
-      JSValue *messageValue = [exception valueForProperty:@"message"];
+      JSValue *messageValue = exception[@"message"];
       NSString *message = messageValue.isString
       ? messageValue.toString
       : @"Unknown error";
@@ -53,16 +54,18 @@
     [RCTJavaScriptLoader loadBundleAtURL:url
                               onProgress:^(RCTLoadingProgress *progressData) {}
                               onComplete:^(NSError *error, RCTSource *source) {
-      RNWWEnvironmentJavaScriptCore *strongSelf = weakSelf;
+      __strong typeof(self) strongSelf = weakSelf;
       if (strongSelf == nil) {
         return;
       }
 
-      NSString *script = [[NSString alloc] initWithData:source.data
-                                               encoding:NSUTF8StringEncoding];
       strongSelf->_isLoading = NO;
-      [strongSelf->_context evaluateScript:script
-                             withSourceURL:url];
+      [strongSelf runAsync:^(JSContext *context) {
+        NSString *script = [[NSString alloc] initWithData:source.data
+                                                 encoding:NSUTF8StringEncoding];
+        [context evaluateScript:script
+                  withSourceURL:url];
+      }];
       [strongSelf dispatchMessagesIfNeeded];
     }];
   }
@@ -74,16 +77,35 @@
   _context = nil;
 }
 
+- (void)runAsync:(void (^)(JSContext *))block
+{
+  __weak typeof(self) weakSelf = self;
+  dispatch_async(_queue, ^{
+    __strong typeof(self) strongSelf = weakSelf;
+    if (strongSelf == nil) {
+      return;
+    }
+
+    JSContext *context = strongSelf->_context;
+    if (context == nil) {
+      return;
+    }
+
+    block(context);
+  });
+}
+
 - (void)dispatchMessage:(NSString *)message
 {
-  JSValue *onMessage = [_context.globalObject valueForProperty:@"onmessage"];
-  if (onMessage.isUndefined || onMessage.isNull) {
-    return;
-  }
+  [self runAsync:^(JSContext *context) {
+    JSValue *onMessage = context[@"onmessage"];
+    if (onMessage.isUndefined || onMessage.isNull) {
+      return;
+    }
 
-  JSValue *event = [JSValue valueWithObject:@{ @"data": message }
-                                  inContext:_context];
-  [onMessage callWithArguments:@[event]];
+    id event = @{ @"data": message };
+    [onMessage callWithArguments:@[event]];
+  }];
 }
 
 - (void)dispatchMessagesIfNeeded
@@ -106,7 +128,7 @@
   if (!_isLoading) {
     [self dispatchMessagesIfNeeded];
     [self dispatchMessage:message];
-  } else if (_pendingEvents) {
+  } else if (_pendingEvents != nil) {
     [_pendingEvents addObject:message];
   } else {
     _pendingEvents = [[NSMutableArray alloc] initWithObjects:message, nil];

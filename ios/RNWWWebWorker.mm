@@ -7,7 +7,7 @@
 
 #import "RNWWEnvironment.h"
 #import "RNWWEnvironmentBridge.h"
-#import "RNWWEnvironmentJavaScriptCore.h"
+#import "RNWWEnvironmentHermes.h"
 
 #if RCT_NEW_ARCH_ENABLED
 #import "RNWebworkerSpec.h"
@@ -70,9 +70,9 @@ RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
 #endif
 
   id<RNWWEnviromnent> thread;
-  if ([environment isEqualToString:@"javascript-core"]) {
-    thread = [[RNWWEnvironmentJavaScriptCore alloc] initWithThreadId:threadId
-                                                                 url:url];
+  if ([environment isEqualToString:@"hermes"]) {
+    thread = [[RNWWEnvironmentHermes alloc] initWithThreadId:threadId
+                                                         url:url];
 
   } else {
     thread = [[RNWWEnvironmentBridge alloc] initWithBridge:_bridge
@@ -85,15 +85,20 @@ RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
                forKey:threadId];
 }
 
-RCT_EXPORT_METHOD(stopThread:(nonnull NSNumber *)threadId)
+RCT_EXPORT_METHOD(stopThread:(nonnull NSNumber *)threadId
+                  mode:(NSString *)mode)
 {
   id<RNWWEnviromnent> thread = _threads[threadId];
   if (thread == nil) {
     return;
   }
 
-  [thread invalidate];
-  [_threads removeObjectForKey:threadId];
+  if ([mode isEqualToString:@"execution"]) {
+    [thread abortExecution];
+  } else {
+    [thread invalidate];
+    [_threads removeObjectForKey:threadId];
+  }
 }
 
 RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId

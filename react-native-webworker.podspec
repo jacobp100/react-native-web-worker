@@ -32,4 +32,10 @@ Pod::Spec.new do |s|
     s.dependency "RCTTypeSafety"
     s.dependency "ReactCommon/turbomodule/core"
   end
+
+  puts ENV['USE_HERMES']
+
+  if ENV['USE_HERMES'] == '1' then
+    s.dependency "hermes-engine"
+  end
 end

@@ -8,6 +8,7 @@
 - (void)invalidate;
 
 - (void)postMessage:(NSString *)message;
+- (void)abortExecution;
 
 @end
 

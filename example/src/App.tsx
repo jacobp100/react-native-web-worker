@@ -13,7 +13,9 @@ export default () => {
   const workerRef = useRef<WebWorker>();
 
   useEffect(() => {
-    const worker = new WebWorker('./worker.thread.js');
+    const worker = new WebWorker('./worker.thread.js', {
+      enviromnent: 'hermes',
+    });
     worker.onmessage = ({ data }) => {
       setMessages((m) => [...m, data]);
     };
@@ -34,6 +36,10 @@ export default () => {
         <Text style={styles.welcome}>Welcome to React Native WebWorker!</Text>
 
         <Button title="Send Message To Worker" onPress={postMessage} />
+        <Button
+          title="Terminate"
+          onPress={() => workerRef.current?.terminate({ mode: 'execution' })}
+        />
 
         <Text style={styles.messages}>Messages:</Text>
         {messages.map((message, i) => (

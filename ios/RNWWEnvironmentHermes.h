@@ -1,9 +1,6 @@
 #import "RNWWEnvironment.h"
-#import "RNWWSelf.h"
 
-#import <JavaScriptCore/JavaScriptCore.h>
-
-@interface RNWWEnvironmentJavaScriptCore : NSObject <RNWWEnviromnent>
+@interface RNWWEnvironmentHermes : NSObject <RNWWEnviromnent>
 
 @property (nonatomic, weak) id<RNWWEnviromnentDelegate> delegate;
 @property (nonatomic, copy) NSNumber *threadId;

@@ -12,8 +12,12 @@ let currentId = 0;
 
 type MessageEvent = { id: number; message: string };
 
-type Options = {
-  enviromnent?: 'react-native' | 'javascript-core';
+type WorkerOptions = {
+  enviromnent?: 'react-native' | 'hermes';
+};
+
+type TerminateOptions = {
+  mode?: 'worker' | 'execution';
 };
 
 export default class Thread {
@@ -25,7 +29,10 @@ export default class Thread {
   private messageListener: { remove: () => void };
   private errorListener: { remove: () => void };
 
-  constructor(jsPath: string, { enviromnent = 'react-native' }: Options = {}) {
+  constructor(
+    jsPath: string,
+    { enviromnent = 'react-native' }: WorkerOptions = {}
+  ) {
     if (typeof jsPath !== 'string' || !jsPath.endsWith('.js')) {
       throw new Error('Invalid path for thread. Only js files are supported');
     }
@@ -77,7 +84,7 @@ export default class Thread {
     WebWorkerModule.postThreadMessage(this.id, message);
   }
 
-  terminate() {
+  terminate({ mode = 'worker' }: TerminateOptions = {}) {
     if (this.terminated) {
       if (__DEV__) {
         console.warn('Attempted to call terminate on terminated worker');
@@ -85,9 +92,11 @@ export default class Thread {
       return;
     }
 
-    this.terminated = true;
-    this.messageListener.remove();
-    this.errorListener.remove();
-    WebWorkerModule.stopThread(this.id);
+    if (mode !== 'execution') {
+      this.terminated = true;
+      this.messageListener.remove();
+      this.errorListener.remove();
+    }
+    WebWorkerModule.stopThread(this.id, mode);
   }
 }

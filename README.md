@@ -59,11 +59,7 @@ self.postMessage('hello');
 
 ## Debugging
 
-Instantiating Threads creates multiple react native JS processes and can make debugging
-remotely behave unpredictably. I recommend using a third party debugging tool like
-[Reactotron](https://github.com/infinitered/reactotron) to aid with this. Each process,
-including your main application as well as your thread code can connect to Reactotron
-and log debugging messages.
+Instantiating Threads creates multiple react native JS processes and can make debugging remotely behave unpredictably. I recommend using a third party debugging tool like [Reactotron](https://github.com/infinitered/reactotron) to aid with this. Each process, including your main application as well as your thread code can connect to Reactotron and log debugging messages.
 
 ## Building for Release
 
@@ -71,18 +67,12 @@ For iOS you can use the following command:
 
 `node node_modules/react-native/local-cli/cli.js bundle --dev false --assets-dest ./ios --entry-file index.worker.js --platform ios --bundle-output ./ios/index.worker.jsbundle`
 
-Once you have generated the bundle file in your ios folder, you will also need to add
-the bundle file to you project in Xcode. In Xcode's file explorer you should see
-a folder with the same name as your app, containing a `main.jsbundle` file as well
-as an `AppDelegate.m` file. Right click on that folder and select the 'Add Files to <Your App Name>'
-option, which will open up finder and allow you to select your `ios/index.worker.jsbundle`
-file. You will only need to do this once, and the file will be included in all future
-builds.
+Once you have generated the bundle file in your ios folder, you will also need to add the bundle file to you project in Xcode. In Xcode's file explorer you should see a folder with the same name as your app, containing a `main.jsbundle` file as well as an `AppDelegate.m` file. Right click on that folder and select the 'Add Files to <Your App Name>' option, which will open up finder and allow you to select your `ios/index.worker.jsbundle` file. You will only need to do this once, and the file will be included in all future builds.
 
 For convenience I recommend adding these thread building commands as npm scripts
 to your project.
 
-## Optimisations
+## Optimisations (Experimental)
 
 By default, you can use most of React Native and it's related infrastructure in your workers. This includes globals like `fetch`, `setTimeout` etc. However, including this makes your worker file about 800kb larger.
 
@@ -92,7 +82,7 @@ If your worker does not use those globals - maybe it only does heavy computation
 import { WebWorker } from '@jacobp100/react-native-webworker';
 
 const worker = new WebWorker('path/to/worker.js', {
-  environment: 'javascript-core',
+  environment: 'hermes',
 });
 ```
 
@@ -104,4 +94,12 @@ self.onmessage = (e) => {
 };
 ```
 
-The `javascript-core` environment uses [JavaScriptCore](https://developer.apple.com/documentation/javascriptcore), and not Hermes. As this is bundled into iOS itself, you can use Hermes for your main application and won't pay the cost of including two JavaScript engines.
+You may have to add this at the top of your Podfile
+
+```ruby
+ENV['USE_HERMES'] = '1'
+```
+
+Only the [Hermes](https://hermesengine.dev) engine is supported. This is due to the fact that JavaScriptCore does not expose the APIs to terminate running JavaScript (they exist, they're just not public). This means if your code goes into an infinite loop, you cannot stop it.
+
+In Hermes, it's possible to stop just the current execution without tearing down the whole worker. If you need to do this, call `worker.terminate({ mode: 'execution' })`.

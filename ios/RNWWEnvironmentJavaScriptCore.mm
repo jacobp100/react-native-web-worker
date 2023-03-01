@@ -11,12 +11,11 @@
 }
 
 - (instancetype)initWithThreadId:(NSNumber *)threadId
-                           url:(NSURL *)url
+                             url:(NSURL *)url
 {
   self = [super init];
   if (self) {
     self.threadId = threadId;
-    self.url = url;
 
     _isLoading = YES;
 
@@ -43,7 +42,10 @@
         return;
       }
 
-      NSString *message = [[exception valueForProperty:@"message"] toString];
+      JSValue *messageValue = [exception valueForProperty:@"message"];
+      NSString *message = messageValue.isString
+      ? messageValue.toString
+      : @"Unknown error";
       [strongSelf->_delegate didReceiveError:strongSelf
                                      message:message];
     };
@@ -60,7 +62,7 @@
                                                encoding:NSUTF8StringEncoding];
       strongSelf->_isLoading = NO;
       [strongSelf->_context evaluateScript:script
-                             withSourceURL:strongSelf.url];
+                             withSourceURL:url];
       [strongSelf dispatchMessagesIfNeeded];
     }];
   }

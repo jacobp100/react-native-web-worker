@@ -14,6 +14,7 @@
 #endif
 
 @implementation RNWWEnvironmentBridge {
+  NSURL *_url;
   RCTBridge *_threadBridge;
 }
 
@@ -24,7 +25,7 @@
   self = [super init];
   if (self) {
     self.threadId = threadId;
-    self.url = url;
+    _url = url;
 
 #if RCT_DEV
     RCTDevMenu *mainDevMenu = [bridge moduleForClass:RCTDevMenu.class];
@@ -88,7 +89,7 @@
 
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
 {
-  return self.url;
+  return _url;
 }
 
 #if RCT_NEW_ARCH_ENABLED

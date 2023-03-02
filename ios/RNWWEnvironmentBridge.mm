@@ -73,11 +73,7 @@
   [threadSelf postMessage:message];
 }
 
-- (void)abortExecution
-{
-    [self.delegate didReceiveError:self
-                           message:@"abortExecution is not supported for bridge-based workers"];
-}
+RCT_NOT_IMPLEMENTED(- (void)abortExecution)
 
 - (void)didReceiveMessage:(RNWWSelf *)sender
                   message:(NSString *)message

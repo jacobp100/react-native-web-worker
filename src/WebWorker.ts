@@ -13,7 +13,7 @@ let currentId = 0;
 type MessageEvent = { id: number; message: string };
 
 type WorkerOptions = {
-  enviromnent?: 'react-native' | 'hermes';
+  enviromnent?: 'react-native' | 'light';
 };
 
 type TerminateOptions = {

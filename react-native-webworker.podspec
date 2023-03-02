@@ -21,9 +21,9 @@ Pod::Spec.new do |s|
   # Don't install the dependencies when we run `pod install` in the old architecture.
   if ENV['RCT_NEW_ARCH_ENABLED'] == '1' then
     s.compiler_flags = folly_compiler_flags + " -DRCT_NEW_ARCH_ENABLED=1"
-    s.pod_target_xcconfig    = {
-        "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_ROOT)/Headers/Private/React-Core\"",
-        "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+    s.pod_target_xcconfig = {
+      "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_ROOT)/Headers/Private/React-Core\"",
+      "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     }
 
     s.dependency "React-Codegen"
@@ -33,9 +33,8 @@ Pod::Spec.new do |s|
     s.dependency "ReactCommon/turbomodule/core"
   end
 
-  puts ENV['USE_HERMES']
-
-  if ENV['USE_HERMES'] == '1' then
+  # Hermes is default so env var may be unset
+  if ENV['USE_HERMES'] == nil || ENV['USE_HERMES'] == '1' then
     s.dependency "hermes-engine"
   end
 end

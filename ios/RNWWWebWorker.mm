@@ -7,7 +7,7 @@
 
 #import "RNWWEnvironment.h"
 #import "RNWWEnvironmentBridge.h"
-#import "RNWWEnvironmentHermes.h"
+#import "RNWWEnvironmentLight.h"
 
 #if RCT_NEW_ARCH_ENABLED
 #import "RNWebworkerSpec.h"
@@ -70,10 +70,9 @@ RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
 #endif
 
   id<RNWWEnviromnent> thread;
-  if ([environment isEqualToString:@"hermes"]) {
-    thread = [[RNWWEnvironmentHermes alloc] initWithThreadId:threadId
-                                                         url:url];
-
+  if ([environment isEqualToString:@"light"]) {
+    thread = [[RNWWEnvironmentLight alloc] initWithThreadId:threadId
+                                                        url:url];
   } else {
     thread = [[RNWWEnvironmentBridge alloc] initWithBridge:_bridge
                                                   threadId:threadId

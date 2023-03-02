@@ -1,6 +1,6 @@
 #import "RNWWEnvironment.h"
 
-@interface RNWWEnvironmentHermes : NSObject <RNWWEnviromnent>
+@interface RNWWEnvironmentLight : NSObject <RNWWEnviromnent>
 
 @property (nonatomic, weak) id<RNWWEnviromnentDelegate> delegate;
 @property (nonatomic, copy) NSNumber *threadId;

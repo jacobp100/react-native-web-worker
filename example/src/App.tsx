@@ -13,8 +13,8 @@ export default () => {
   const workerRef = useRef<WebWorker>();
 
   useEffect(() => {
-    const worker = new WebWorker('./worker.thread.js', {
-      enviromnent: 'hermes',
+    const worker = new WebWorker('./worker.js', {
+      enviromnent: 'light',
     });
     worker.onmessage = ({ data }) => {
       setMessages((m) => [...m, data]);
@@ -37,7 +37,28 @@ export default () => {
 
         <Button title="Send Message To Worker" onPress={postMessage} />
         <Button
+          title="Restart"
+          onPress={() => {
+            if (workerRef.current === undefined) {
+              const worker = new WebWorker('./worker.js', {
+                enviromnent: 'light',
+              });
+              worker.onmessage = ({ data }) => {
+                setMessages((m) => [...m, data]);
+              };
+              workerRef.current = worker;
+            }
+          }}
+        />
+        <Button
           title="Terminate"
+          onPress={() => {
+            workerRef.current?.terminate();
+            workerRef.current = undefined;
+          }}
+        />
+        <Button
+          title="Terminate Execution"
           onPress={() => workerRef.current?.terminate({ mode: 'execution' })}
         />
 

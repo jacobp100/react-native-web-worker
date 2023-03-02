@@ -6,7 +6,9 @@
 
 Work based off [react-native-threads](https://github.com/joltup/react-native-threads)
 
-Supports the new architecture. Currently only supports iOS.
+Supports the new architecture, using either [Hermes](https://hermesengine.dev) or JavaScriptCore
+
+Currently only supports iOS
 
 ## Usage
 
@@ -21,7 +23,9 @@ In your application code (React components, etc.):
 import { WebWorker } from '@jacobp100/react-native-webworker';
 
 // Start a new react native JS process
-const worker = new WebWorker('path/to/worker.js');
+// The worker JS file has to be at the top level (where the package.json is)
+// But you can call it anything you want - and have multiple
+const worker = new WebWorker('/worker.js');
 
 // Send a message, strings only
 worker.postMessage('hello');
@@ -63,30 +67,46 @@ Instantiating Threads creates multiple react native JS processes and can make de
 
 ## Building for Release
 
-For iOS you can use the following command:
+Depending on if you're using [Hermes](https://hermesengine.dev) (the default) or JavaScript Core, the commands differ. For iOS, the commands you'll need to add are:-
 
-`node node_modules/react-native/local-cli/cli.js bundle --dev false --assets-dest ./ios --entry-file index.worker.js --platform ios --bundle-output ./ios/index.worker.jsbundle`
+##### Hermes
 
-Once you have generated the bundle file in your ios folder, you will also need to add the bundle file to you project in Xcode. In Xcode's file explorer you should see a folder with the same name as your app, containing a `main.jsbundle` file as well as an `AppDelegate.m` file. Right click on that folder and select the 'Add Files to <Your App Name>' option, which will open up finder and allow you to select your `ios/index.worker.jsbundle` file. You will only need to do this once, and the file will be included in all future builds.
+```bash
+# Bundle your worker JS
+npx react-native bundle --dev false --minify false --assets-dest ./ios --entry-file worker.js --platform ios --bundle-output ./ios/worker.jsbundle
+# Convert bundled JS to Hermes ByteCode
+./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary ./ios/worker.jsbundle -out ./ios/worker.jsbundle
+```
 
-For convenience I recommend adding these thread building commands as npm scripts
-to your project.
+#### JavaScriptCore
+
+```bash
+npx react-native bundle --dev false --assets-dest ./ios --entry-file worker.js --platform ios --bundle-output ./ios/worker.jsbundle
+```
+
+Once you have generated the bundle file in your ios folder, you will also need to add the bundle file to you project in Xcode. In Xcode's file explorer you should see a folder with the same name as your app, containing a `main.jsbundle` file as well as an `AppDelegate.m` file. Right click on that folder and select the 'Add Files to <Your App Name>' option, which will open up finder and allow you to select your `ios/worker.jsbundle` file. You will only need to do this once, and the file will be included in all future builds.
+
+For convenience I recommend adding these thread building commands as npm scripts to your project.
 
 ## Optimisations (Experimental)
 
 By default, you can use most of React Native and it's related infrastructure in your workers. This includes globals like `fetch`, `setTimeout` etc. However, including this makes your worker file about 800kb larger.
 
-If your worker does not use those globals - maybe it only does heavy computation that would lock the UI thread - you can run the worker using a lighter environment.
+If your worker does not use those globals - maybe it only does heavy computation that would lock the UI thread - you can run the worker using a lighter environment, and get the benefit of a smaller bundle.
+
+The light environment will use will use either Hermes or JavaScriptCore - depending on what's used in your app.
+
+When using Hermes, JS exceptions are caught and reported, but the message cannot (yet) be recovered, and are always reported as _Unknown error_.
 
 ```js
 import { WebWorker } from '@jacobp100/react-native-webworker';
 
 const worker = new WebWorker('path/to/worker.js', {
-  environment: 'hermes',
+  environment: 'light',
 });
 ```
 
-In your worker, **do not import react-native or any react-native related packages**. The `self` variable is exposed as a global.
+In your worker, **do not import react-native or any react-native related packages** - it'll cause a crash. The `self` variable is exposed as a global.
 
 ```js
 self.onmessage = (e) => {
@@ -94,12 +114,8 @@ self.onmessage = (e) => {
 };
 ```
 
-You may have to add this at the top of your Podfile
+In the case you are terminating the worker only to stop long running code, and intend on re-initializing the worker afterwards, you can skip some steps and just abort just the long running code, leaving the worker otherwise in-tact. This saves the need to re-parse the JavaScript and re-initialize the worker. Be cautious when doing this - you must be consider any global state in your worker, and if terminating half way through will cause correctness issues. If this scenario is suitable for your use-case, you'll need to call `worker.terminate({ mode: 'execution' })`. Note this is only available for Hermes, as JavaScriptCore does not publicly expose the APIs needed to terminate currently executing code (see Gotchas).
 
-```ruby
-ENV['USE_HERMES'] = '1'
-```
+## Gotchas
 
-Only the [Hermes](https://hermesengine.dev) engine is supported. This is due to the fact that JavaScriptCore does not expose the APIs to terminate running JavaScript (they exist, they're just not public). This means if your code goes into an infinite loop, you cannot stop it.
-
-In Hermes, it's possible to stop just the current execution without tearing down the whole worker. If you need to do this, call `worker.terminate({ mode: 'execution' })`.
+If you're using JavaScriptCore, there is no mechanism to terminate currently executing code. This means if your worker code goes into an infinite loop, calling `worker.terminate()` will not stop the execution. Hermes does support this, so calling `worker.terminate()` will terminate the executing code as expected.

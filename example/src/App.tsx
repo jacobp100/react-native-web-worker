@@ -36,31 +36,6 @@ export default () => {
         <Text style={styles.welcome}>Welcome to React Native WebWorker!</Text>
 
         <Button title="Send Message To Worker" onPress={postMessage} />
-        <Button
-          title="Restart"
-          onPress={() => {
-            if (workerRef.current === undefined) {
-              const worker = new WebWorker('./worker.js', {
-                enviromnent: 'light',
-              });
-              worker.onmessage = ({ data }) => {
-                setMessages((m) => [...m, data]);
-              };
-              workerRef.current = worker;
-            }
-          }}
-        />
-        <Button
-          title="Terminate"
-          onPress={() => {
-            workerRef.current?.terminate();
-            workerRef.current = undefined;
-          }}
-        />
-        <Button
-          title="Terminate Execution"
-          onPress={() => workerRef.current?.terminate({ mode: 'execution' })}
-        />
 
         <Text style={styles.messages}>Messages:</Text>
         {messages.map((message, i) => (

@@ -125,11 +125,6 @@ using namespace facebook::hermes;
       __weak __typeof(self) weakSelf = self;
       strongSelf->_isLoading = NO;
       [strongSelf runAsync:^(RUNTIME rt) {
-        __strong __typeof(self) strongSelf = weakSelf;
-        if (strongSelf == nil) {
-          return;
-        }
-
 #if RNWW_USE_HERMES
         std::string script(static_cast<const char*>(source.data.bytes),
                            source.data.length);
@@ -141,7 +136,13 @@ using namespace facebook::hermes;
         [rt evaluateScript:script
              withSourceURL:url];
 #endif
-        [strongSelf dispatchMessagesIfNeeded:rt];
+      } onComplete:^() {
+        __strong __typeof(self) strongSelf = weakSelf;
+        if (strongSelf == nil) {
+          return;
+        }
+
+        [strongSelf dispatchMessagesIfNeeded];
       }];
     }];
   }
@@ -164,6 +165,7 @@ using namespace facebook::hermes;
 }
 
 - (void)runAsync:(void (^)(RUNTIME))block
+      onComplete:(nullable void (^)())onComplete
 {
   __weak __typeof(self) weakSelf = self;
   dispatch_async(_queue, ^{
@@ -182,52 +184,58 @@ using namespace facebook::hermes;
       [strongSelf.delegate didReceiveError:strongSelf
                                    message:@"Unknown error"];
     }
+
+    if (onComplete != nil) {
+      onComplete();
+    }
   });
 }
 
-- (void)dispatchMessage:(RUNTIME)rt
-                message:(NSString *)message
+- (void)dispatchMessage:(NSString *)message
 {
+  [self runAsync:^(RUNTIME rt) {
 #if RNWW_USE_HERMES
-  Value onMessageValue = rt->global().getProperty(*rt, "onmessage");
-  if (!onMessageValue.isObject()) {
-    return;
-  }
+    rt->unwatchTimeLimit();
 
-  Object onMessageObject = onMessageValue.asObject(*rt);
-  if (!onMessageObject.isFunction(*rt)) {
-    return;
-  }
+    Value onMessageValue = rt->global().getProperty(*rt, "onmessage");
+    if (!onMessageValue.isObject()) {
+      return;
+    }
 
-  std::string messageCString([message cStringUsingEncoding:NSUTF8StringEncoding]);
-  Value data = String::createFromUtf8(*rt, messageCString);
+    Object onMessageObject = onMessageValue.asObject(*rt);
+    if (!onMessageObject.isFunction(*rt)) {
+      return;
+    }
 
-  Object event = Object(*rt);
-  event.setProperty(*rt, "data", data);
+    std::string messageCString([message cStringUsingEncoding:NSUTF8StringEncoding]);
+    Value data = String::createFromUtf8(*rt, messageCString);
 
-  Function onMessage = onMessageObject.getFunction(*rt);
+    Object event = Object(*rt);
+    event.setProperty(*rt, "data", data);
 
-  onMessage.call(*rt, event, 1);
+    Function onMessage = onMessageObject.getFunction(*rt);
+
+    onMessage.call(*rt, event, 1);
 #else
-  JSValue *onMessage = rt[@"onmessage"];
-  if (onMessage.isUndefined || onMessage.isNull) {
-    return;
-  }
+    JSValue *onMessage = rt[@"onmessage"];
+    if (onMessage.isUndefined || onMessage.isNull) {
+      return;
+    }
 
-  id event = @{ @"data": message };
-  [onMessage callWithArguments:@[event]];
+    id event = @{ @"data": message };
+    [onMessage callWithArguments:@[event]];
 #endif
+  } onComplete:nil];
 }
 
-- (void)dispatchMessagesIfNeeded:(RUNTIME)rt
+- (void)dispatchMessagesIfNeeded
 {
   if (!_pendingEvents) {
     return;
   }
 
   for (NSString *message in _pendingEvents) {
-    [self dispatchMessage:rt
-                  message:message];
+    [self dispatchMessage:message];
   }
 
   [_pendingEvents removeAllObjects];
@@ -237,22 +245,9 @@ using namespace facebook::hermes;
 
 - (void)postMessage:(NSString *)message
 {
-#if RNWW_USE_HERMES
-  _runtime->unwatchTimeLimit();
-#endif
-
   if (!_isLoading) {
-    __weak __typeof(self) weakSelf = self;
-    [self runAsync:^(RUNTIME rt) {
-      __strong __typeof(self) strongSelf = weakSelf;
-      if (strongSelf == nil) {
-        return;
-      }
-
-      [strongSelf dispatchMessagesIfNeeded:rt];
-      [strongSelf dispatchMessage:rt
-                          message:message];
-    }];
+    [self dispatchMessagesIfNeeded];
+    [self dispatchMessage:message];
   } else if (_pendingEvents != nil) {
     [_pendingEvents addObject:message];
   } else {

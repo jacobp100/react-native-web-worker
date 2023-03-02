@@ -114,8 +114,19 @@ self.onmessage = (e) => {
 };
 ```
 
-In the case you are terminating the worker only to stop long running code, and intend on re-initializing the worker afterwards, you can skip some steps and just abort just the long running code, leaving the worker otherwise in-tact. This saves the need to re-parse the JavaScript and re-initialize the worker. Be cautious when doing this - you must be consider any global state in your worker, and if terminating half way through will cause correctness issues. If this scenario is suitable for your use-case, you'll need to call `worker.terminate({ mode: 'execution' })`. Note this is only available for Hermes, as JavaScriptCore does not publicly expose the APIs needed to terminate currently executing code (see Gotchas).
+## Infinite Loops
 
-## Gotchas
+If you're using JavaScriptCore, there is no mechanism to terminate currently executing code. This means if your worker code goes into an infinite loop, calling `worker.terminate()` will not stop the execution.
 
-If you're using JavaScriptCore, there is no mechanism to terminate currently executing code. This means if your worker code goes into an infinite loop, calling `worker.terminate()` will not stop the execution. Hermes does support this, so calling `worker.terminate()` will terminate the executing code as expected.
+Hermes does support this, and will do so automatically in development builds, but needs additional setup for release builds. In your build command, you'll need to add the `-emit-async-break-check` to the hermes compile command.
+
+```diff
++./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary ./ios/worker.jsbundle -out ./ios/worker.jsbundle
+-./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary -emit-async-break-check ./ios/worker.jsbundle -out ./ios/worker.jsbundle
+```
+
+Note that doing this makes the bundle ~10x bigger, and will have an impact on performance too. However, if you don't do this, infinite loops will continue to run in the background and degrade battery life.
+
+In the case you are terminating the worker only to stop long running code, and intend on re-initializing the worker afterwards, you can skip some steps and just abort just the long running code, leaving the worker otherwise in-tact. This saves the need to re-parse the JavaScript and re-initialize the worker. Be cautious when doing this - you must be consider any global state in your worker, and if terminating half way through will cause correctness issues.
+
+If this scenario is suitable for your use-case, you can call `worker.terminate({ mode: 'execution' })`. This will call the `onerror` handler. You can continue to call `worker.postMessage`, and you do not need to wait for the `onerror` handler to fire.

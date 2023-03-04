@@ -69,19 +69,18 @@ Instantiating Threads creates multiple react native JS processes and can make de
 
 Depending on if you're using [Hermes](https://hermesengine.dev) (the default) or JavaScript Core, the commands differ. For iOS, the commands you'll need to add are:-
 
-##### Hermes
-
 ```bash
 # Bundle your worker JS
-npx react-native bundle --dev false --minify false --assets-dest ./ios --entry-file worker.js --platform ios --bundle-output ./ios/worker.jsbundle
-# Convert bundled JS to Hermes ByteCode
-./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary ./ios/worker.jsbundle -out ./ios/worker.jsbundle
+npx react-native bundle --dev false --assets-dest ./ios --entry-file worker.js --platform ios --bundle-output ./ios/worker.jsbundle
 ```
 
-#### JavaScriptCore
+##### Hermes
+
+If you're using Hermes, you'll also need to add the following command:-
 
 ```bash
-npx react-native bundle --dev false --assets-dest ./ios --entry-file worker.js --platform ios --bundle-output ./ios/worker.jsbundle
+# Convert bundled JS to Hermes ByteCode
+./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary ./ios/worker.jsbundle -out ./ios/worker.jsbundle
 ```
 
 Once you have generated the bundle file in your ios folder, you will also need to add the bundle file to you project in Xcode. In Xcode's file explorer you should see a folder with the same name as your app, containing a `main.jsbundle` file as well as an `AppDelegate.m` file. Right click on that folder and select the 'Add Files to <Your App Name>' option, which will open up finder and allow you to select your `ios/worker.jsbundle` file. You will only need to do this once, and the file will be included in all future builds.

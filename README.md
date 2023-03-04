@@ -121,8 +121,8 @@ If you're using JavaScriptCore, there is no mechanism to terminate currently exe
 Hermes does support this, and will do so automatically in development builds, but needs additional setup for release builds. In your build command, you'll need to add the `-emit-async-break-check` to the hermes compile command.
 
 ```diff
-+./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary ./ios/worker.jsbundle -out ./ios/worker.jsbundle
--./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary -emit-async-break-check ./ios/worker.jsbundle -out ./ios/worker.jsbundle
+-./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary ./ios/worker.jsbundle -out ./ios/worker.jsbundle
++./ios/Pods/hermes-engine/destroot/bin/hermesc -emit-binary -emit-async-break-check ./ios/worker.jsbundle -out ./ios/worker.jsbundle
 ```
 
 Note that doing this makes the bundle ~10x bigger, and will have an impact on performance too. However, if you don't do this, infinite loops will continue to run in the background and degrade battery life.

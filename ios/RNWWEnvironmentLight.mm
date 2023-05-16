@@ -174,21 +174,37 @@ using namespace facebook::hermes;
       return;
     }
 
+    NSString * _Nullable errorMessage = nil;
+
     try {
-      block(strongSelf->_runtime);
+      RUNTIME runtime = strongSelf->_runtime;
+      if (runtime != nil) {
+        block(runtime);
+      } else {
+        errorMessage = @"Worker was terminated";
+      }
     } catch (...) {
       // FIXME - can't figure out what the exception type is
       // It comes both from JS exceptions
       // And if you call abortExecution
       // NB - this is only for Hermes
+      errorMessage = @"Unknown error";
+    }
+
+    if (errorMessage != nil) {
       [strongSelf.delegate didReceiveError:strongSelf
-                                   message:@"Unknown error"];
+                                   message:errorMessage];
     }
 
     if (onComplete != nil) {
       onComplete();
     }
   });
+}
+
+- (void)runAsync:(void (^)(RUNTIME))block
+{
+  [self runAsync:block onComplete:nil];
 }
 
 - (void)dispatchMessage:(NSString *)message
@@ -225,7 +241,7 @@ using namespace facebook::hermes;
     id event = @{ @"data": message };
     [onMessage callWithArguments:@[event]];
 #endif
-  } onComplete:nil];
+  }];
 }
 
 - (void)dispatchMessagesIfNeeded

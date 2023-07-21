@@ -10,21 +10,24 @@ import { WebWorker } from '@jacobp100/react-native-webworker';
 
 export default () => {
   const [messages, setMessages] = useState<string[]>([]);
+  const [environment, setEnvironment] = useState<'light' | 'react-native'>(
+    'light'
+  );
   const workerRef = useRef<WebWorker>();
 
   useEffect(() => {
-    const worker = new WebWorker('./worker.js', {
-      enviromnent: 'light',
-    });
+    console.log(`Create worker: ${environment}`);
+    const worker = new WebWorker(`./worker-${environment}.js`, { environment });
     worker.onmessage = ({ data }) => {
       setMessages((m) => [...m, data]);
     };
     workerRef.current = worker;
     return () => {
+      console.log(`Terminate worker: ${environment}`);
       worker.terminate();
       workerRef.current = undefined;
     };
-  }, []);
+  }, [environment]);
 
   const postMessage = () => {
     workerRef.current!.postMessage(`Message ${messages.length + 1}`);
@@ -34,6 +37,16 @@ export default () => {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <Text style={styles.welcome}>Welcome to React Native WebWorker!</Text>
+
+        <Text>Environment: {environment}</Text>
+        <Button
+          title="Use Light Envonment"
+          onPress={() => setEnvironment('light')}
+        />
+        <Button
+          title="Use React-Native Envonment"
+          onPress={() => setEnvironment('react-native')}
+        />
 
         <Button title="Send Message To Worker" onPress={postMessage} />
 

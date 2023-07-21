@@ -34,15 +34,39 @@ To run the example app on iOS:
 yarn example ios
 ```
 
-By default, the example is configured to build with the new architecture. To build with the old architecture, you can change the following:
+By default, the example is configured to build with the old architecture. To run the example with the new architecture, you can do the following:
 
-1. For Android, change `newArchEnabled=true` to `newArchEnabled=false` in `example/android/gradle.properties`.
-2. For iOS, change `ENV['RCT_NEW_ARCH_ENABLED'] = '1'` to `ENV['RCT_NEW_ARCH_ENABLED'] = '0'` in `example/ios/Podfile`.
+1. For Android, run:
+
+   ```sh
+   ORG_GRADLE_PROJECT_newArchEnabled=true yarn example android
+   ```
+
+2. For iOS, run:
+
+   ```sh
+   RCT_NEW_ARCH_ENABLED=1 yarn example pods
+   yarn example ios
+   ```
+
+If you are building for a different architecture than your previous build, make sure to remove the build folders first. You can run the following command to cleanup all build folders:
+
+```sh
+yarn clean
+```
+
+To confirm that the app is running with the new architecture, you can check the Metro logs for a message like this:
+
+```sh
+Running "WebWorkerExample" with {"fabric":true,"initialProps":{"concurrentRoot":true},"rootTag":1}
+```
+
+Note the `"fabric":true` and `"concurrentRoot":true` properties.
 
 Make sure your code passes TypeScript and ESLint. Run the following to verify:
 
 ```sh
-yarn typescript
+yarn typecheck
 yarn lint
 ```
 
@@ -57,9 +81,12 @@ Remember to add tests for your change if possible. Run the unit tests by:
 ```sh
 yarn test
 ```
-To edit the Objective-C files, open `example/ios/WebworkerExample.xcworkspace` in XCode and find the source files at `Pods > Development Pods > react-native-webworker`.
 
-To edit the Kotlin files, open `example/android` in Android studio and find the source files at `reactnativewebworker` under `Android`.
+To edit the Objective-C or Swift files, open `example/ios/WebWorkerExample.xcworkspace` in XCode and find the source files at `Pods > Development Pods > react-native-web-worker`.
+
+To edit the Java or Kotlin files, open `example/android` in Android studio and find the source files at `react-native-web-worker` under `Android`.
+
+
 ### Commit message convention
 
 We follow the [conventional commits specification](https://www.conventionalcommits.org/en) for our commit messages:
@@ -96,7 +123,7 @@ yarn release
 The `package.json` file contains various scripts for common tasks:
 
 - `yarn bootstrap`: setup project by installing all dependencies and pods.
-- `yarn typescript`: type-check files with TypeScript.
+- `yarn typecheck`: type-check files with TypeScript.
 - `yarn lint`: lint files with ESLint.
 - `yarn test`: run unit tests with Jest.
 - `yarn example start`: start the Metro server for the example app.

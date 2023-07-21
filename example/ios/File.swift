@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  WebworkerExample
+//  WebWorkerExample
 //
 
 import Foundation

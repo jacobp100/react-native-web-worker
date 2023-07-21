@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "WebworkerExample.app"
-               BlueprintName = "WebworkerExample"
-               ReferencedContainer = "container:WebworkerExample.xcodeproj">
+               BuildableName = "WebWorkerExample.app"
+               BlueprintName = "WebWorkerExample"
+               ReferencedContainer = "container:WebWorkerExample.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "WebworkerExampleTests.xctest"
-               BlueprintName = "WebworkerExampleTests"
-               ReferencedContainer = "container:WebworkerExample.xcodeproj">
+               BuildableName = "WebWorkerExampleTests.xctest"
+               BlueprintName = "WebWorkerExampleTests"
+               ReferencedContainer = "container:WebWorkerExample.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "WebworkerExample.app"
-            BlueprintName = "WebworkerExample"
-            ReferencedContainer = "container:WebworkerExample.xcodeproj">
+            BuildableName = "WebWorkerExample.app"
+            BlueprintName = "WebWorkerExample"
+            ReferencedContainer = "container:WebWorkerExample.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "WebworkerExample.app"
-            BlueprintName = "WebworkerExample"
-            ReferencedContainer = "container:WebworkerExample.xcodeproj">
+            BuildableName = "WebWorkerExample.app"
+            BlueprintName = "WebWorkerExample"
+            ReferencedContainer = "container:WebWorkerExample.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

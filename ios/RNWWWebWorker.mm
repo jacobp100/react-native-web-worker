@@ -3,8 +3,6 @@
 #import <React/RCTDevMenu.h>
 #include <stdlib.h>
 
-#import <React/RCTAppSetupUtils.h>
-
 #import "RNWWEnvironment.h"
 #import "RNWWEnvironmentBridge.h"
 #import "RNWWEnvironmentLight.h"

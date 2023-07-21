@@ -13,7 +13,7 @@ let currentId = 0;
 type MessageEvent = { id: number; message: string };
 
 type WorkerOptions = {
-  enviromnent?: 'react-native' | 'light';
+  environment?: 'react-native' | 'light';
 };
 
 type TerminateOptions = {
@@ -31,7 +31,7 @@ export default class Thread {
 
   constructor(
     jsPath: string,
-    { enviromnent = 'react-native' }: WorkerOptions = {}
+    { environment = 'react-native' }: WorkerOptions = {}
   ) {
     if (typeof jsPath !== 'string' || !jsPath.endsWith('.js')) {
       throw new Error('Invalid path for thread. Only js files are supported');
@@ -70,7 +70,7 @@ export default class Thread {
     );
 
     const name = jsPath.slice(0, -'.js'.length);
-    WebWorkerModule.startThread(this.id, name, enviromnent);
+    WebWorkerModule.startThread(this.id, name, environment);
   }
 
   postMessage(message: string) {

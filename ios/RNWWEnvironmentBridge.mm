@@ -1,10 +1,13 @@
 #import "RNWWEnvironmentBridge.h"
 #import <React/RCTDevSettings.h>
 #import <React/RCTDevMenu.h>
-#import <React/RCTAppSetupUtils.h>
 #include <stdlib.h>
 
 #if RCT_NEW_ARCH_ENABLED
+#import <React-RCTAppDelegate/RCTAppSetupUtils.h>
+#import <React/RCTRuntimeExecutorFromBridge.h>
+#import <react/renderer/runtimescheduler/RuntimeScheduler.h>
+#import <react/renderer/runtimescheduler/RuntimeSchedulerCallInvoker.h>
 #import <React/CoreModulesPlugins.h>
 #import <React/RCTCxxBridgeDelegate.h>
 #import <ReactCommon/RCTTurboModuleManager.h>
@@ -100,11 +103,14 @@ RCT_NOT_IMPLEMENTED(- (void)abortExecution)
 
 - (std::unique_ptr<facebook::react::JSExecutorFactory>)jsExecutorFactoryForBridge:(RCTBridge *)bridge
 {
+  std::shared_ptr<facebook::react::RuntimeScheduler> _runtimeScheduler = std::make_shared<facebook::react::RuntimeScheduler>(RCTRuntimeExecutorFromBridge(bridge));
+  std::shared_ptr<facebook::react::CallInvoker> callInvoker =
+      std::make_shared<facebook::react::RuntimeSchedulerCallInvoker>(_runtimeScheduler);
   RCTTurboModuleManager *turboModuleManager = [[RCTTurboModuleManager alloc]
                                                initWithBridge:bridge
                                                delegate:self
                                                jsInvoker:bridge.jsCallInvoker];
-  return RCTAppSetupDefaultJsExecutorFactory(bridge, turboModuleManager);
+  return RCTAppSetupDefaultJsExecutorFactory(bridge, turboModuleManager, _runtimeScheduler);
 }
 
 #pragma mark RCTTurboModuleManagerDelegate

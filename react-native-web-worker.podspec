@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   # Don't install the dependencies when we run `pod install` in the old architecture.
   if ENV['RCT_NEW_ARCH_ENABLED'] == '1' then
     s.compiler_flags = folly_compiler_flags + " -DRCT_NEW_ARCH_ENABLED=1"
-    s.pod_target_xcconfig    = {
+    s.pod_target_xcconfig = {
       "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_ROOT)/Headers/Private/React-Core\" \"$(PODS_ROOT)/Headers/Private/React-Fabric\"",
       "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1",
       "CLANG_CXX_LANGUAGE_STANDARD" => "c++17"
@@ -44,6 +44,14 @@ Pod::Spec.new do |s|
 
   # Hermes is default so env var may be unset
   if ENV['USE_HERMES'] == nil || ENV['USE_HERMES'] == '1' then
+    s.dependency "hermes-engine"
+  elsif ENV['RNWW_USE_HERMES'] != nil then
+    # Use Hermes for the worker, but not for RN
+    # The only real use-case is if Hermes does not work with some libraries you use
+    # But it does work for the worker - AND you need to be able to terminate the worker
+    # To do this, open your Podfile and
+    # Add `ENV['RNWW_USE_HERMES'] = "1"` to the top
+    # Add `setup_hermes!()` after `use_react_native!(...)`
     s.dependency "hermes-engine"
   end
 end

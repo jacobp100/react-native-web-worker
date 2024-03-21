@@ -211,8 +211,6 @@ using namespace facebook::hermes;
 {
   [self runAsync:^(RUNTIME rt) {
 #if RNWW_USE_HERMES
-    rt->unwatchTimeLimit();
-
     Value onMessageValue = rt->global().getProperty(*rt, "onmessage");
     if (!onMessageValue.isObject()) {
       return;
@@ -274,7 +272,7 @@ using namespace facebook::hermes;
 #if RNWW_USE_HERMES
 - (void)abortExecution
 {
-  _runtime->watchTimeLimit(0);
+  _runtime->asyncTriggerTimeout();
 }
 #else
 RCT_NOT_IMPLEMENTED(- (void)abortExecution)

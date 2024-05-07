@@ -85,7 +85,7 @@ using namespace facebook::hermes;
     self.threadId = threadId;
     _isLoading = YES;
     dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
-                                                                        QOS_CLASS_BACKGROUND,
+                                                                        QOS_CLASS_DEFAULT,
                                                                         -1);
     _queue = dispatch_queue_create("hermes", qos);
 

@@ -20,6 +20,19 @@ using namespace facebook::hermes;
 #import <JavaScriptCore/JavaScriptCore.h>
 #endif
 
+typedef NS_ENUM(NSUInteger, QueuedEventType) {
+  QueuedEventTypeMessage,
+  QueuedEventTypeAbortExecution
+};
+
+@interface QueuedEvent : NSObject
+@property (nonatomic, assign) QueuedEventType type;
+@property (nonatomic, copy) NSString *message;
+@end
+
+@implementation QueuedEvent
+@end
+
 @implementation RNWWEnvironmentLight {
 #if RNWW_USE_HERMES
 #define RUNTIME std::shared_ptr<HermesRuntime>
@@ -29,8 +42,8 @@ using namespace facebook::hermes;
   RUNTIME _runtime;
   dispatch_queue_t _queue;
   // Messages queued here until the JS has loaded (lazily created)
-  NSMutableArray<NSString *> *_pendingEvents;
-  BOOL _isLoading;
+  NSMutableArray<QueuedEvent *> *_pendingEvents;
+  BOOL _jsInitialized;
 }
 
 + (RUNTIME)initRuntime:(void (^)(NSString *))onMessageBlock
@@ -83,7 +96,7 @@ using namespace facebook::hermes;
   self = [super init];
   if (self) {
     self.threadId = threadId;
-    _isLoading = YES;
+    _jsInitialized = NO;
     dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,
                                                                         QOS_CLASS_DEFAULT,
                                                                         -1);
@@ -123,7 +136,6 @@ using namespace facebook::hermes;
       }
 
       __weak __typeof(self) weakSelf = self;
-      strongSelf->_isLoading = NO;
       [strongSelf runAsync:^(RUNTIME rt) {
 #if RNWW_USE_HERMES
         std::string script(static_cast<const char*>(source.data.bytes),
@@ -142,7 +154,8 @@ using namespace facebook::hermes;
           return;
         }
 
-        [strongSelf dispatchMessagesIfNeeded];
+        strongSelf->_jsInitialized = YES;
+        [strongSelf dispatchEventsIfNeeded];
       }];
     }];
   }
@@ -176,13 +189,16 @@ using namespace facebook::hermes;
 
     NSString * _Nullable errorMessage = nil;
 
+    RUNTIME runtime = strongSelf->_runtime;
     try {
-      RUNTIME runtime = strongSelf->_runtime;
       if (runtime != nil) {
         block(runtime);
       } else {
         errorMessage = @"Worker was terminated";
       }
+    } catch (std::exception &e) {
+      errorMessage = [NSString stringWithCString:e.what()
+                                        encoding:NSUTF8StringEncoding];
     } catch (...) {
       // FIXME - can't figure out what the exception type is
       // It comes both from JS exceptions
@@ -242,14 +258,28 @@ using namespace facebook::hermes;
   }];
 }
 
-- (void)dispatchMessagesIfNeeded
+- (void)dispatchAbortExecution
+{
+#if RNWW_USE_HERMES
+  _runtime->asyncTriggerTimeout();
+#endif
+}
+
+- (void)dispatchEventsIfNeeded
 {
   if (!_pendingEvents) {
     return;
   }
 
-  for (NSString *message in _pendingEvents) {
-    [self dispatchMessage:message];
+  for (QueuedEvent *event in _pendingEvents) {
+    switch (event.type) {
+      case QueuedEventTypeMessage:
+        [self dispatchMessage:event.message];
+        break;
+      case QueuedEventTypeAbortExecution:
+        [self dispatchAbortExecution];
+        break;
+    }
   }
 
   [_pendingEvents removeAllObjects];
@@ -259,20 +289,30 @@ using namespace facebook::hermes;
 
 - (void)postMessage:(NSString *)message
 {
-  if (!_isLoading) {
-    [self dispatchMessagesIfNeeded];
+  if (_jsInitialized) {
+    [self dispatchEventsIfNeeded];
     [self dispatchMessage:message];
-  } else if (_pendingEvents != nil) {
-    [_pendingEvents addObject:message];
   } else {
-    _pendingEvents = [[NSMutableArray alloc] initWithObjects:message, nil];
+    _pendingEvents = _pendingEvents ?: [[NSMutableArray alloc] initWithCapacity:1];
+    QueuedEvent *event = [QueuedEvent new];
+    event.type = QueuedEventTypeMessage;
+    event.message = message;
+    [_pendingEvents addObject:event];
   }
 }
 
 #if RNWW_USE_HERMES
 - (void)abortExecution
 {
-  _runtime->asyncTriggerTimeout();
+  if (_jsInitialized) {
+    [self dispatchEventsIfNeeded];
+    [self dispatchAbortExecution];
+  } else {
+    _pendingEvents = _pendingEvents ?: [[NSMutableArray alloc] initWithCapacity:1];
+    QueuedEvent *event = [QueuedEvent new];
+    event.type = QueuedEventTypeAbortExecution;
+    [_pendingEvents addObject:event];
+  }
 }
 #else
 RCT_NOT_IMPLEMENTED(- (void)abortExecution)

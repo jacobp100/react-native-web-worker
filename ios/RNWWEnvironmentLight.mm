@@ -190,8 +190,6 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
         std::string constructorName = e
           .value()
           .asObject(*rt)
-          .getProperty(*rt, "constructor")
-          .asObject(*rt)
           .getProperty(*rt, "name")
           .asString(*rt)
           .utf8(*rt);

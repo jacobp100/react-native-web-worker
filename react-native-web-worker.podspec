@@ -45,6 +45,7 @@ Pod::Spec.new do |s|
   # Hermes is default so env var may be unset
   if ENV['USE_HERMES'] == nil || ENV['USE_HERMES'] == '1' then
     s.dependency "hermes-engine"
+    s.dependency "React-jsi"
     s.dependency "React-hermes"
   elsif ENV['RNWW_USE_HERMES'] != nil then
     # Use Hermes for the worker, but not for RN
@@ -54,6 +55,7 @@ Pod::Spec.new do |s|
     # Add `ENV['RNWW_USE_HERMES'] = "1"` to the top
     # Add `setup_hermes!()` after `use_react_native!(...)`
     s.dependency "hermes-engine"
+    s.dependency "React-jsi"
     s.dependency "React-hermes"
   end
 end

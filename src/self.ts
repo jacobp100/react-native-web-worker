@@ -18,20 +18,20 @@ export type Self = {
 AppRegistry.getRunnable('x');
 
 const self: Self = {
-  postMessage(message: string) {
-    if (message != null) {
-      SelfModule.postMessage(message);
+  postMessage(data: string) {
+    if (data != null) {
+      SelfModule.postMessage(data);
     }
   },
   onmessage: undefined,
 };
 
-ThreadSelfManagerEvents.addListener('message', (message: string) => {
+ThreadSelfManagerEvents.addListener('message', (data: string) => {
   if (typeof self.onmessage === 'function') {
     try {
-      self.onmessage({ data: message });
+      self.onmessage({ data });
     } catch (e: any) {
-      SelfModule.postError(e.message ?? 'Unknown error');
+      SelfModule.postError(e.message ?? 'Unknown error', e.name);
     }
   }
 });

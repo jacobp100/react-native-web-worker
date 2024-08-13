@@ -3,9 +3,10 @@
 
 @protocol RNWWSelfDelegate <NSObject>
 - (void)didReceiveMessage:(id)sender
-                  message:(NSString *)message;
+                     data:(NSString *)data;
 - (void)didReceiveError:(id)sender
-                message:(NSString *)message;
+                message:(NSString *)message
+                   name:(NSString *)name;
 @end
 
 @interface RNWWSelf : RCTEventEmitter <RCTBridgeModule>

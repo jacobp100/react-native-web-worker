@@ -10,7 +10,8 @@ const ThreadEvents = new NativeEventEmitter(WebWorkerModule);
 
 let currentId = 0;
 
-type MessageEvent = { id: number; message: string };
+type MessageEvent = { id: number; data: string };
+type ErrorEvent = { id: number; message: string; name: string };
 
 type WorkerOptions = {
   environment?: 'react-native' | 'light';
@@ -23,7 +24,7 @@ type TerminateOptions = {
 export default class Thread {
   id: number;
   onmessage: ((event: { data: string }) => void) | undefined;
-  onerror: ((event: { message: string }) => void) | undefined;
+  onerror: ((event: { message: string; name: string }) => void) | undefined;
 
   private terminated: boolean;
   private messageListener: { remove: () => void };
@@ -45,26 +46,26 @@ export default class Thread {
 
     this.messageListener = ThreadEvents.addListener(
       'message',
-      ({ id, message }: MessageEvent) => {
+      ({ id, data }: MessageEvent) => {
         if (
           !this.terminated &&
           id === this.id &&
           typeof this.onmessage === 'function'
         ) {
-          this.onmessage({ data: message });
+          this.onmessage({ data });
         }
       }
     );
 
     this.errorListener = ThreadEvents.addListener(
       'error',
-      ({ id, message }: MessageEvent) => {
+      ({ id, message, name }: ErrorEvent) => {
         if (
           !this.terminated &&
           id === this.id &&
           typeof this.onerror === 'function'
         ) {
-          this.onerror({ message });
+          this.onerror({ message, name });
         }
       }
     );

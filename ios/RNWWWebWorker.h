@@ -5,5 +5,5 @@
 
 #import "RNWWEnvironment.h"
 
-@interface RNWWWebWorker : RCTEventEmitter <RCTBridgeModule, RNWWEnviromnentDelegate>
+@interface RNWWWebWorker : RCTEventEmitter <RCTBridgeModule, RNWWEnvironmentDelegate>
 @end

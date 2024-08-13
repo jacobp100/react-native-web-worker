@@ -5,9 +5,9 @@
 #import "RNWWEnvironment.h"
 #import "RNWWSelf.h"
 
-@interface RNWWEnvironmentBridge : NSObject <RNWWEnviromnent, RCTBridgeDelegate, RNWWSelfDelegate>
+@interface RNWWEnvironmentBridge : NSObject <RNWWEnvironment, RCTBridgeDelegate, RNWWSelfDelegate>
 
-@property (nonatomic, weak) id<RNWWEnviromnentDelegate> delegate;
+@property (nonatomic, weak) id<RNWWEnvironmentDelegate> delegate;
 @property (nonatomic, copy) NSNumber *threadId;
 
 - (instancetype)initWithBridge:(RCTBridge *)bridge

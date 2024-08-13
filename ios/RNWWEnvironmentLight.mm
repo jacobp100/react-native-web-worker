@@ -88,14 +88,14 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
 
     __weak __typeof(self) weakSelf = self;
 
-    _runtime = [RNWWEnvironmentLight initRuntime:^(NSString *message) {
+    _runtime = [RNWWEnvironmentLight initRuntime:^(NSString *data) {
       __strong __typeof(self) strongSelf = weakSelf;
       if (strongSelf == nil) {
         return;
       }
 
       [strongSelf.delegate didReceiveMessage:strongSelf
-                                     message:message];
+                                        data:data];
     } onError:^(NSString *message) {
       __strong __typeof(self) strongSelf = weakSelf;
       if (strongSelf == nil) {
@@ -103,7 +103,8 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
       }
 
       [strongSelf.delegate didReceiveError:strongSelf
-                                   message:message];
+                                   message:message
+                                      name:@"Error"];
     }];
 
     [RCTJavaScriptLoader loadBundleAtURL:url

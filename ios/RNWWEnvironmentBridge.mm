@@ -79,18 +79,19 @@
 RCT_NOT_IMPLEMENTED(- (void)abortExecution)
 
 - (void)didReceiveMessage:(RNWWSelf *)sender
-                  message:(NSString *)message
+                     data:(NSString *)data
 {
   [self.delegate didReceiveMessage:self
-                           message:message];
+                              data:data];
 }
 
 - (void)didReceiveError:(RNWWSelf *)sender
                 message:(NSString *)message
+                   name:(NSString *)name
 {
   [self.delegate didReceiveError:self
                          message:message
-                            name:@"Error"];
+                            name:name];
 }
 
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge

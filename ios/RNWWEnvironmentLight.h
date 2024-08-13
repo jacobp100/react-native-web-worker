@@ -17,9 +17,9 @@ using namespace facebook::hermes;
 #import <JavaScriptCore/JavaScriptCore.h>
 #endif
 
-@interface RNWWEnvironmentLight : NSObject <RNWWEnviromnent>
+@interface RNWWEnvironmentLight : NSObject <RNWWEnvironment>
 
-@property (nonatomic, weak) id<RNWWEnviromnentDelegate> delegate;
+@property (nonatomic, weak) id<RNWWEnvironmentDelegate> delegate;
 @property (nonatomic, copy) NSNumber *threadId;
 
 - (instancetype)initWithThreadId:(NSNumber *)threadId

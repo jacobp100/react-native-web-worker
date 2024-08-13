@@ -76,7 +76,7 @@ RCT_EXPORT_MODULE(Self);
 }
 
 RCT_REMAP_METHOD(postMessage,
-                 didReceiveMessage:(NSString *)message)
+                 didReceiveMessage:(NSString *)data)
 {
   if (self.delegate == nil) {
     NSLog(@"ERROR: postMessage sent outside worker context");
@@ -84,11 +84,12 @@ RCT_REMAP_METHOD(postMessage,
   }
 
   [self.delegate didReceiveMessage:self
-                           message:message];
+                              data:data];
 }
 
 RCT_REMAP_METHOD(postError,
-                 didReceiveError:(NSString *)message)
+                 didReceiveError:(NSString *)message
+                 name:(NSString *)name)
 {
   if (self.delegate == nil) {
     NSLog(@"ERROR: postMessage sent outside worker context");
@@ -96,7 +97,8 @@ RCT_REMAP_METHOD(postError,
   }
 
   [self.delegate didReceiveError:self
-                         message:message];
+                         message:message
+                            name:name];
 }
 
 #ifdef RCT_NEW_ARCH_ENABLED

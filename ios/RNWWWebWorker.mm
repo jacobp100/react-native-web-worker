@@ -12,7 +12,7 @@
 #endif
 
 @implementation RNWWWebWorker {
-  NSMutableDictionary<NSNumber *, id<RNWWEnvironmnent>> *_threads;
+  NSMutableDictionary<NSNumber *, id<RNWWEnvironment>> *_threads;
 }
 
 RCT_EXPORT_MODULE(WebWorker);
@@ -34,7 +34,7 @@ RCT_EXPORT_MODULE(WebWorker);
 
 - (void)invalidate {
   for (NSNumber *threadId in _threads) {
-    id<RNWWEnvironmnent> enviromnent = _threads[threadId];
+    id<RNWWEnvironment> enviromnent = _threads[threadId];
     [enviromnent invalidate];
   }
 
@@ -67,7 +67,7 @@ RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
   NSURL *url = [[NSBundle mainBundle] URLForResource:name withExtension:@"jsbundle"];
 #endif
 
-  id<RNWWEnvironmnent> thread;
+  id<RNWWEnvironment> thread;
   if ([environment isEqualToString:@"light"]) {
     thread = [[RNWWEnvironmentLight alloc] initWithThreadId:threadId
                                                         url:url];
@@ -85,7 +85,7 @@ RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
 RCT_EXPORT_METHOD(stopThread:(nonnull NSNumber *)threadId
                   mode:(NSString *)mode)
 {
-  id<RNWWEnvironmnent> thread = _threads[threadId];
+  id<RNWWEnvironment> thread = _threads[threadId];
   if (thread == nil) {
     return;
   }
@@ -101,7 +101,7 @@ RCT_EXPORT_METHOD(stopThread:(nonnull NSNumber *)threadId
 RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
                   data:(NSString *)data)
 {
-  id<RNWWEnvironmnent> thread = _threads[threadId];
+  id<RNWWEnvironment> thread = _threads[threadId];
   if (thread == nil) {
     NSLog(@"Could not post to thread with id %@", threadId);
     return;
@@ -110,7 +110,7 @@ RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
   [thread postMessage:data];
 }
 
-- (void)didReceiveMessage:(id<RNWWEnvironmnent>)sender
+- (void)didReceiveMessage:(id<RNWWEnvironment>)sender
                   data:(NSString *)data
 {
   id body = @{
@@ -121,7 +121,7 @@ RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
                      body:body];
 }
 
-- (void)didReceiveError:(id<RNWWEnvironmnent>)sender
+- (void)didReceiveError:(id<RNWWEnvironment>)sender
                 message:(NSString *)message
                    name:(NSString *)name
 {

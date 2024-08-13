@@ -195,7 +195,7 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
           .getProperty(*rt, "name")
           .asString(*rt)
           .utf8(*rt);
-          errorName = @(constructorName.data());
+        errorName = @(constructorName.data());
       } catch (...) {
       }
     } catch (const std::exception &e) {

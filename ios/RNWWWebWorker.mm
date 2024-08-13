@@ -76,7 +76,7 @@ RCT_EXPORT_METHOD(startThread:(nonnull NSNumber *)threadId
                                                   threadId:threadId
                                                        url:url];
   }
-    
+
   thread.delegate = self;
   [_threads setObject:thread
                forKey:threadId];
@@ -123,10 +123,12 @@ RCT_EXPORT_METHOD(postThreadMessage:(nonnull NSNumber *)threadId
 
 - (void)didReceiveError:(id<RNWWEnviromnent>)sender
                 message:(NSString *)message
+                   name:(NSString *)name
 {
   id body = @{
     @"id": sender.threadId,
     @"message": message,
+    @"name": name,
   };
   [self sendEventWithName:@"error"
                      body:body];

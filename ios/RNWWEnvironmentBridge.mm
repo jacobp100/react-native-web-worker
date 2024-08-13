@@ -89,7 +89,8 @@ RCT_NOT_IMPLEMENTED(- (void)abortExecution)
                 message:(NSString *)message
 {
   [self.delegate didReceiveError:self
-                         message:message];
+                         message:message
+                            name:@"Error"];
 }
 
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge

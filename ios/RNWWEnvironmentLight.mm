@@ -3,21 +3,10 @@
 #import <React/RCTDefines.h>
 #import <React/RCTJavaScriptLoader.h>
 
-#if __has_include(<hermes-engine/hermes/hermes.h>)
-#define RNWW_USE_HERMES 1
-#else
-#define RNWW_USE_HERMES 0
-#endif
-
 #if RNWW_USE_HERMES
-#import <hermes-engine/hermes/hermes.h>
-
-#include <utility>
-
-using namespace facebook::jsi;
-using namespace facebook::hermes;
+#define RUNTIME std::shared_ptr<HermesRuntime>
 #else
-#import <JavaScriptCore/JavaScriptCore.h>
+#define RUNTIME JSContext *
 #endif
 
 typedef NS_ENUM(NSUInteger, QueuedEventType) {
@@ -34,11 +23,6 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
 @end
 
 @implementation RNWWEnvironmentLight {
-#if RNWW_USE_HERMES
-#define RUNTIME std::shared_ptr<HermesRuntime>
-#else
-#define RUNTIME JSContext *
-#endif
   RUNTIME _runtime;
   dispatch_queue_t _queue;
   // Messages queued here until the JS has loaded (lazily created)
@@ -187,29 +171,43 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
       return;
     }
 
+    NSString * _Nullable errorName = nil;
     NSString * _Nullable errorMessage = nil;
 
-    RUNTIME runtime = strongSelf->_runtime;
-    try {
-      if (runtime != nil) {
-        block(runtime);
-      } else {
-        errorMessage = @"Worker was terminated";
+    RUNTIME rt = strongSelf->_runtime;
+      try {
+        if (rt != nil) {
+          block(rt);
+        } else {
+            errorName = @"TimeoutError";
+          errorMessage = @"Worker was terminated";
+        }
+    } catch (const JSError &e) {
+      errorMessage = @(e.getMessage().data());
+
+      try {
+        std::string constructorName = e
+          .value()
+          .asObject(*rt)
+          .getProperty(*rt, "constructor")
+          .asObject(*rt)
+          .getProperty(*rt, "name")
+          .asString(*rt)
+          .utf8(*rt);
+          errorName = @(constructorName.data());
+      } catch (...) {
       }
-    } catch (std::exception &e) {
-      errorMessage = [NSString stringWithCString:e.what()
-                                        encoding:NSUTF8StringEncoding];
+    } catch (const std::exception &e) {
+      errorMessage = @(e.what());
     } catch (...) {
-      // FIXME - can't figure out what the exception type is
-      // It comes both from JS exceptions
-      // And if you call abortExecution
-      // NB - this is only for Hermes
       errorMessage = @"Unknown error";
     }
 
     if (errorMessage != nil) {
+      errorName = errorName ?: @"Error";
       [strongSelf.delegate didReceiveError:strongSelf
-                                   message:errorMessage];
+                                   message:errorMessage
+                                      name:errorName];
     }
 
     if (onComplete != nil) {

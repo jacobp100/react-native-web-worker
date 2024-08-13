@@ -18,6 +18,7 @@
                   message:(NSString *)message;
 
 - (void)didReceiveError:(id<RNWWEnviromnent>)sender
-                message:(NSString *)message;
+                message:(NSString *)message
+                   name:(NSString *)type;
 
 @end

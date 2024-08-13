@@ -4,8 +4,17 @@
 #import <React/RCTJavaScriptLoader.h>
 
 #if RNWW_USE_HERMES
+#import <hermes/hermes.h>
+
+#include <utility>
+
+using namespace facebook::jsi;
+using namespace facebook::hermes;
+
 #define RUNTIME std::shared_ptr<HermesRuntime>
 #else
+#import <JavaScriptCore/JavaScriptCore.h>
+
 #define RUNTIME JSContext *
 #endif
 
@@ -180,9 +189,10 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
         if (rt != nil) {
           block(rt);
         } else {
-            errorName = @"TimeoutError";
+          errorName = @"TimeoutError";
           errorMessage = @"Worker was terminated";
         }
+#if RNWW_USE_HERMES
     } catch (const JSError &e) {
       errorMessage = @(e.getMessage().data());
 
@@ -196,6 +206,7 @@ typedef NS_ENUM(NSUInteger, QueuedEventType) {
         errorName = @(constructorName.data());
       } catch (...) {
       }
+#endif
     } catch (const std::exception &e) {
       errorMessage = @(e.what());
     } catch (...) {

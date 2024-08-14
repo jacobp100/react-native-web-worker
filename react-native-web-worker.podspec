@@ -32,9 +32,38 @@ Pod::Spec.new do |s|
     # Use Hermes for the worker, but not for RN
     # The only real use-case is if Hermes does not work with some libraries you use
     # But it does work for the worker - AND you need to be able to terminate the worker
-    # To do this, open your Podfile and
-    # Add `ENV['RNWW_USE_HERMES'] = "1"` to the top
-    # Add `setup_hermes!()` after `use_react_native!(...)`
+    # To do this, open your Podfile andmake the following changes
+    #
+    # + ENV['RNWW_USE_HERMES'] = '1'
+    #
+    #   target 'YourProject' do
+    #     ...
+    #     use_react_native!(...)
+    #     ...
+    # +   setup_hermes!()
+    # +
+    # +   pre_install do |installer|
+    # +     installer.pod_targets.each do |pod|
+    # +       if pod.name == 'React-jsi'
+    # +         s = pod.root_spec
+    # +         s.dependency 'hermes-engine'
+    # +         s.exclude_files = [
+    # +           'jsi/jsilib-posix.cpp',
+    # +           'jsi/jsilib-windows.cpp',
+    # +           '**/test/*',
+    # +           'jsi/jsi.cpp'
+    # +         ]
+    # +       end
+    # +     end
+    # +   end
+    #
+    #     post_install do |installer|
+    #       ...
+    #     end
+    #   end
+    #
+    # Check the pre_install against the current source for React-jsi.podspec
+    # It may have changed, and you may need to reflect some changes
     use_hermes = true
   end
 

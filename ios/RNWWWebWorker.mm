@@ -34,8 +34,8 @@ RCT_EXPORT_MODULE(WebWorker);
 
 - (void)invalidate {
   for (NSNumber *threadId in _threads) {
-    id<RNWWEnvironment> enviromnent = _threads[threadId];
-    [enviromnent invalidate];
+    id<RNWWEnvironment> environment = _threads[threadId];
+    [environment invalidate];
   }
 
   [_threads removeAllObjects];

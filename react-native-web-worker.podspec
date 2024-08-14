@@ -63,7 +63,7 @@ Pod::Spec.new do |s|
     #   end
     #
     # Check the pre_install against the current source for React-jsi.podspec
-    # It may have changed, and you may need to reflect some changes
+    # It may have changed, and you may need to reflect some of the changes
     use_hermes = true
   end
 
@@ -87,5 +87,5 @@ Pod::Spec.new do |s|
 
     # Needed for AppSetupUtils
     s.dependency "React-RCTAppDelegate"
-  else
+  end
 end

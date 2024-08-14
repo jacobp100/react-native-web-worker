@@ -1,6 +1,6 @@
 {
   "name": "@jacobp100/react-native-webworker",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "WebWorkers for React Native",
   "source": "./src/index.ts",
   "main": "./lib/commonjs/index.js",
